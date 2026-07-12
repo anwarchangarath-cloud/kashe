@@ -1,0 +1,137 @@
+==============================================================================
+ KASH — UAE MARKETPLACE · DEPLOYMENT PREREQUISITES
+ Frontend: Cloudflare Pages   |   Backend: Firebase
+==============================================================================
+
+CURRENT STATE
+-------------
+The app is currently FRONTEND-ONLY with mock data. All state (products, cart,
+orders, auth, admin) lives in the browser's localStorage. There is NO backend.
+
+- Deploying the frontend to Cloudflare Pages works today (it's a static build).
+- Making it a real store requires standing up Firebase and replacing the mock
+  stores with real Firebase calls. That's a genuine backend project, not a
+  config toggle.
+
+
+==============================================================================
+ A. TOOLING & ACCOUNTS (needed for both)
+==============================================================================
+[ ] Node.js 18 or newer
+[ ] Project in Git (GitHub / GitLab) — Cloudflare Pages deploys from a repo
+[ ] Cloudflare account (Pages is free)
+[ ] Firebase / Google account + a Firebase project
+[ ] Firebase BLAZE (pay-as-you-go) plan
+        - Required for Cloud Functions and for real phone-OTP SMS.
+        - Firestore / Auth / Storage alone can run on the free Spark plan.
+[ ] CLIs installed:
+        npm i -g wrangler          (Cloudflare)
+        npm i -g firebase-tools     (Firebase)
+
+
+==============================================================================
+ B. CLOUDFLARE PAGES  (the frontend — easy, ~ready today)
+==============================================================================
+Build settings (Pages -> Create project -> connect repo):
+    Build command:      npm run build
+    Output directory:   dist
+    Node version:       18+ (set NODE_VERSION env var if needed)
+
+Required files / config:
+[ ] public/_redirects   containing:   /* /index.html 200
+        (SPA routing — without this, refreshing /admin or /product/x 404s)
+[ ] Environment variables in Pages settings — the PUBLIC Firebase web config:
+        VITE_FIREBASE_API_KEY
+        VITE_FIREBASE_AUTH_DOMAIN
+        VITE_FIREBASE_PROJECT_ID
+        VITE_FIREBASE_STORAGE_BUCKET
+        VITE_FIREBASE_MESSAGING_SENDER_ID
+        VITE_FIREBASE_APP_ID
+        (these are safe to expose; security is enforced by Firebase rules)
+[ ] Custom domain (optional) — add domain + DNS in Cloudflare
+
+Deploy options:
+    - Git push (auto-deploy on commit), OR
+    - wrangler pages deploy dist
+
+
+==============================================================================
+ C. FIREBASE  (the backend — the real work)
+==============================================================================
+1. PROJECT + WEB APP
+   [ ] Create Firebase project
+   [ ] Register a Web App -> copy firebaseConfig (apiKey, authDomain, etc.)
+   [ ] firebase login  ->  firebase init  (Firestore, Functions, Storage)
+
+2. FIRESTORE (database)
+   [ ] Enable Firestore
+   [ ] CHOOSE A REGION — permanent choice. Pick near the UAE
+       (e.g. me-central1 / europe-west). Cannot be changed later.
+   [ ] Write & deploy security rules (see CLAUDE.md "Security"):
+         - orders:   allow create: if false   (only Cloud Functions create)
+         - coupons:  allow read:   if false   (validate server-side only)
+         - role checks: customer / ops / manager / owner
+         - only owner may touch settings / staff / payouts
+
+3. AUTHENTICATION  (app is OTP-only — no passwords)
+   [ ] Enable the PHONE provider (mobile -> one-time code)
+   [ ] Configure reCAPTCHA / App Check (required for web phone auth)
+   [ ] Enable BILLING for real SMS; add TEST phone numbers for dev
+   [ ] Google sign-in (secondary) — OAuth setup
+   [ ] Apple sign-in (secondary) — requires an APPLE DEVELOPER account ($99/yr)
+   [ ] Assign roles via custom claims; enforce them in Firestore rules
+
+4. STORAGE  (product images)
+   [ ] Enable Storage + write rules
+   [ ] Needed for real image uploads (the Add-product image dropzone is
+       currently visual only)
+
+5. CLOUD FUNCTIONS  (Blaze plan) — the security-critical logic
+   Per CLAUDE.md, these MUST run server-side:
+   [ ] Compute cart totals server-side (NEVER trust client prices)
+   [ ] Create orders (client cannot create them directly)
+   [ ] Decrement stock inside a Firestore transaction
+   [ ] Validate coupons (never client-readable)
+   [ ] Write every staff action to an immutable auditLog
+   [ ] firebase deploy --only functions,firestore:rules,storage
+
+
+==============================================================================
+ D. CODE CHANGES BEFORE IT'S A REAL STORE  (currently all mock)
+==============================================================================
+Replace the localStorage mock stores with Firebase:
+[ ] AuthContext        -> Firebase Auth (phone OTP)
+[ ] REMOVE demo logins -> delete src/store/demoAccounts.js and its usage
+[ ] ProductsContext    -> Firestore products/inventory
+[ ] OrdersContext /
+    AdminContext orders -> Firestore orders (created by Cloud Function)
+[ ] Order placement + totals -> move into a Cloud Function
+[ ] Image dropzone     -> upload to Firebase Storage
+[ ] Roles              -> Firebase custom claims, enforced in rules
+[ ] Add a .env (gitignored) with VITE_FIREBASE_* for local dev
+
+
+==============================================================================
+ E. PAYMENTS  (NOT Firebase — separate provider)
+==============================================================================
+Card + Apple Pay need a payment gateway:
+    - Options: Stripe, Checkout.com, Telr, or PayTabs (UAE-friendly)
+    - Merchant account required
+    - Apple Pay: domain verification + Apple merchant ID
+    - PCI compliance handled by the gateway (never touch raw card data)
+Cash on Delivery (COD) is just an order/payment STATE you already model
+    (unpaid / on-delivery / paid / refund-due).
+
+
+==============================================================================
+ SUMMARY
+==============================================================================
+- Cloudflare Pages: ~1 file (_redirects) + env vars away from deploying the
+  demo. Can be done immediately.
+- Firebase: a real backend build (Auth + Firestore schema/rules + Functions +
+  Storage). It REPLACES the mock layer rather than adding to it.
+- Payments: a third-party gateway, separate from both.
+
+Stack reference: React 19 - Vite - Tailwind v4 - Firebase - i18next (EN/AR)
+See CLAUDE.md for the full design system, security rules and data contracts.
+==============================================================================

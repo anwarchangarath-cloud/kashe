@@ -1,0 +1,25 @@
+{
+  "rules": {
+    "color-no-hex": [true, {
+      "message": "No hex values. Use a token from tokens.css (see CLAUDE.md)."
+    }],
+
+    "declaration-property-value-disallowed-list": {
+      "/^margin-(left|right)$/": ["/.*/"],
+      "/^padding-(left|right)$/": ["/.*/"],
+      "/^(left|right)$/": ["/.*/"],
+      "/^border-(left|right)/": ["/.*/"],
+      "text-align": ["left", "right"]
+    },
+
+    "declaration-property-value-disallowed-list-message":
+      "Use logical properties for RTL: margin-inline-start / padding-inline-end / inset-inline-start / text-align: start."
+  },
+
+  "_notes": {
+    "why": "These two rules catch the two most expensive mistakes:",
+    "1": "Hardcoded hex values break the approved palette and cannot be themed.",
+    "2": "left/right CSS breaks the Arabic RTL layout and is a rewrite to fix later.",
+    "tailwind": "Also ban ml- mr- pl- pr- left- right- in eslint or code review. Use ms- me- ps- pe- start- end-."
+  }
+}

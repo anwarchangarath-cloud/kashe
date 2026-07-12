@@ -1,0 +1,51 @@
+/* =============================================================
+   Design tokens — approved palette. Do not add colours here.
+   Every colour has exactly one job. See CLAUDE.md.
+   ============================================================= */
+
+:root {
+  /* Brand */
+  --brand:       #0B4FA8;   /* header, nav, links, category icons, trust */
+  --brand-dark:  #0B2A4F;   /* footer, admin sidebar */
+  --brand-tint:  #E6F0FB;   /* light blue surfaces, promo tiles */
+
+  /* Action — BUTTONS ONLY */
+  --action:      #FF6A00;
+  --action-tint: #FFF0E6;
+
+  /* Price — PRICES AND DISCOUNT BADGES ONLY */
+  --price:       #E01E37;
+  --price-tint:  #FCEBED;
+
+  /* Success — stock, delivery, confirmations */
+  --success:      #1B8A3A;
+  --success-tint: #EAF6EE;
+
+  /* Highlight — sale emphasis, pending status */
+  --highlight:      #FFD54A;
+  --highlight-tint: #FFF6E0;
+  --highlight-ink:  #9A6700;   /* readable amber text */
+
+  /* Neutrals */
+  --page:      #FBFBF9;   /* page background (off-white). Cards stay --canvas white */
+  --canvas:    #FFFFFF;
+  --surface:   #F5F5F3;
+  --surface-2: #F5F7FA;
+  --border:    #E5E5E5;
+  --ink:       #1A1A1A;
+  --ink-muted: #6B6B6B;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius:    8px;
+  --radius-lg: 12px;
+
+  /* Type */
+  --font-sans: 'Albert Sans', system-ui, sans-serif;
+  --font-ar:   'Noto Sans Arabic', var(--font-sans);
+}
+
+/* Arabic switches the family; everything else mirrors via logical properties */
+[dir="rtl"] {
+  --font-sans: 'Noto Sans Arabic', system-ui, sans-serif;
+}

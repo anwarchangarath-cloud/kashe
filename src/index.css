@@ -1,0 +1,57 @@
+@import "../tokens.css";
+@import "tailwindcss";
+
+/* Map the approved palette (tokens.css) onto Tailwind's theme so utilities like
+   bg-brand / text-price / bg-action carry the tokens. No hex ever appears here —
+   every value references a token. Adding a colour anywhere is a design-system break. */
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-tint: var(--brand-tint);
+
+  --color-action: var(--action);
+  --color-action-tint: var(--action-tint);
+
+  --color-price: var(--price);
+  --color-price-tint: var(--price-tint);
+
+  --color-success: var(--success);
+  --color-success-tint: var(--success-tint);
+
+  --color-highlight: var(--highlight);
+  --color-highlight-tint: var(--highlight-tint);
+  --color-highlight-ink: var(--highlight-ink);
+
+  --color-page: var(--page);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+
+  --radius-sm: var(--radius-sm);
+  --radius-DEFAULT: var(--radius);
+  --radius-lg: var(--radius-lg);
+
+  --font-sans: var(--font-sans);
+  --font-serif: 'Fraunces', Georgia, serif;
+  --font-ar: var(--font-ar);
+}
+
+html {
+  background-color: var(--page);
+}
+
+body {
+  margin: 0;
+  background-color: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Arabic headings/hero fall back to the Arabic family; Fraunces is Latin-only. */
+[dir="rtl"] .font-serif {
+  font-family: var(--font-ar);
+}
