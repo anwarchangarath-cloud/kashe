@@ -13,3 +13,6 @@ dist-ssr
 # Cloudflare / wrangler
 .wrangler
 .dev.vars
+
+# Firebase deploy cache
+.firebase/
