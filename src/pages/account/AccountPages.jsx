@@ -28,7 +28,7 @@ function PageTitle({ title, sub, action }) {
 
 export function AccountOrders() {
   const { t } = useTranslation()
-  const { orders } = useOrders()
+  const { myOrders: orders } = useOrders()
   return (
     <>
       <PageTitle title={t('account.pages.ordersTitle')} sub={t('account.pages.ordersSub', { count: orders.length })} />

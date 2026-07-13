@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Check, ShieldCheck, RotateCcw, Truck, Heart, Minus, Plus } from 'lucide-react'
+import { Check, ShieldCheck, RotateCcw, Truck, Heart, Minus, Plus, Play } from 'lucide-react'
 import { cn } from '../lib/cn.js'
 import Breadcrumb from '../components/ui/Breadcrumb.jsx'
 import Badge from '../components/ui/Badge.jsx'
@@ -32,13 +32,20 @@ export default function Product() {
   const { id } = useParams()
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { getProduct, products } = useProducts()
+  const { getProduct, products, loading } = useProducts()
   const { add } = useCart()
   const wishlist = useWishlist()
   const toast = useToast()
 
+  // All hooks must run before any early return (product loads async → hook order stability).
+  const [activeThumb, setActiveThumb] = useState(0)
+  const [qty, setQty] = useState(1)
+
   const p = getProduct(id)
 
+  if (loading && !p) {
+    return <div className="mx-auto max-w-3xl px-4 py-24 text-center text-sm text-ink-muted">…</div>
+  }
   if (!p) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-24 text-center">
@@ -50,7 +57,6 @@ export default function Product() {
     )
   }
 
-  const thumbnails = 4
   const freeDeliveryBy = 'Sunday, 12 July'
   const wished = wishlist.has(p.id)
   const inStock = p.inStock
@@ -58,8 +64,13 @@ export default function Product() {
   const bundle = products.filter((x) => x.id !== p.id && x.inStock).slice(0, 3)
   const bundleTotal = bundle.reduce((s, i) => s + i.price, 0)
 
-  const [activeThumb, setActiveThumb] = useState(0)
-  const [qty, setQty] = useState(1)
+  // Gallery = product images (+ an optional video tile at the end).
+  const imgs = p.images?.length ? p.images : p.image ? [p.image] : []
+  const media = [
+    ...imgs.map((src) => ({ type: 'image', src })),
+    ...(p.video ? [{ type: 'video', src: p.video }] : []),
+  ]
+  const active = media[activeThumb] ?? media[0]
 
   function addToCart() {
     add(p.id, qty)
@@ -89,23 +100,34 @@ export default function Product() {
         {/* Gallery */}
         <div>
           <div className="aspect-square overflow-hidden rounded-lg bg-surface">
-            <ProductImage src={p.image} alt={p.name} />
+            {active?.type === 'video' ? (
+              <video src={active.src} controls className="h-full w-full object-cover" />
+            ) : (
+              <ProductImage src={active?.src} alt={p.name} />
+            )}
           </div>
-          <div className="mt-4 grid grid-cols-4 gap-4">
-            {Array.from({ length: thumbnails }).map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveThumb(i)}
-                className={`aspect-square overflow-hidden rounded-lg bg-surface ${
-                  i === activeThumb ? 'ring-2 ring-brand' : 'border border-border'
-                }`}
-                aria-label={`View image ${i + 1}`}
-                aria-pressed={i === activeThumb}
-              >
-                <ProductImage src={p.image} alt="" />
-              </button>
-            ))}
-          </div>
+          {media.length > 1 && (
+            <div className="mt-4 grid grid-cols-5 gap-3">
+              {media.map((mm, i) => (
+                <button
+                  key={mm.src + i}
+                  onClick={() => setActiveThumb(i)}
+                  className={`relative aspect-square overflow-hidden rounded-lg bg-surface ${i === activeThumb ? 'ring-2 ring-brand' : 'border border-border'}`}
+                  aria-label={`View ${mm.type} ${i + 1}`}
+                  aria-pressed={i === activeThumb}
+                >
+                  {mm.type === 'video' ? (
+                    <>
+                      <video src={mm.src} className="h-full w-full object-cover" muted />
+                      <span className="absolute inset-0 grid place-items-center bg-brand-dark/30 text-white"><Play size={18} className="fill-white" /></span>
+                    </>
+                  ) : (
+                    <ProductImage src={mm.src} alt="" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Info */}
@@ -190,15 +212,26 @@ export default function Product() {
 
           <hr className="my-6 border-border" />
 
-          <h2 className="font-serif text-xl font-medium text-ink">{t('productPage.highlights')}</h2>
-          <ul className="mt-3 space-y-2 text-sm text-ink">
-            {p.highlights.map((h) => (
-              <li key={h} className="flex gap-2">
-                <span className="text-ink-muted">·</span>
-                {h}
-              </li>
-            ))}
-          </ul>
+          {p.description && (
+            <div className="mb-6">
+              <h2 className="font-serif text-xl font-medium text-ink">{t('productPage.description')}</h2>
+              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink">{p.description}</p>
+            </div>
+          )}
+
+          {p.highlights?.length > 0 && (
+            <>
+              <h2 className="font-serif text-xl font-medium text-ink">{t('productPage.highlights')}</h2>
+              <ul className="mt-3 space-y-2 text-sm text-ink">
+                {p.highlights.map((h) => (
+                  <li key={h} className="flex gap-2">
+                    <span className="text-ink-muted">·</span>
+                    {h}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
       </div>
 

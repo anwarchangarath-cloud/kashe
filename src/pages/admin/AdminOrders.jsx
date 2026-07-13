@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { cn } from '../../lib/cn.js'
 import { AdminPage, Panel, PaymentBadge } from '../../components/admin/AdminUi.jsx'
 import { formatAed } from '../../lib/format.js'
-import { useAdmin } from '../../store/AdminContext.jsx'
+import { useOrders } from '../../store/OrdersContext.jsx'
 import { useToast } from '../../store/ToastContext.jsx'
 
 const FILTERS = ['all', 'pending', 'packing', 'shipped', 'delivered', 'returned']
@@ -37,7 +37,7 @@ function StatusSelect({ order, onChange }) {
 
 export default function AdminOrders() {
   const { t } = useTranslation()
-  const { orders, setOrderStatus } = useAdmin()
+  const { allOrders: orders, setOrderStatus } = useOrders()
   const toast = useToast()
   const [filter, setFilter] = useState('all')
 

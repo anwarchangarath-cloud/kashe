@@ -1,15 +1,58 @@
-import { createContext, useContext, useMemo } from 'react'
-import { useAdmin } from './AdminContext.jsx'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { apiGet, apiSend } from '../lib/api.js'
+import { useAuth } from './AuthContext.jsx'
 
 const OrdersContext = createContext(null)
 
-// Orders now live in a single unified store (AdminContext). This wrapper keeps the
-// customer-facing useOrders() API stable while both the storefront and admin read/write
-// the same list — so a checkout shows up in "My orders" AND the admin Orders table, and
-// an admin status change reflects back to the customer.
+// Orders live in D1 via the Worker. The customer sees their own (GET /api/orders);
+// admins see all (GET /api/admin/orders). Order creation is server-authoritative:
+// the Worker recomputes totals from DB prices and decrements stock in a transaction.
 export function OrdersProvider({ children }) {
-  const { orders, addOrder } = useAdmin()
-  const value = useMemo(() => ({ orders, addOrder }), [orders, addOrder])
+  const { isAuthed, isAdmin, loading: authLoading } = useAuth()
+  const [myOrders, setMyOrders] = useState([])
+  const [allOrders, setAllOrders] = useState([])
+
+  const reloadMine = useCallback(async () => {
+    if (!isAuthed) return setMyOrders([])
+    try {
+      setMyOrders(await apiGet('/api/orders', { withAuth: true }))
+    } catch (e) {
+      console.error('my orders load failed', e)
+    }
+  }, [isAuthed])
+
+  const reloadAll = useCallback(async () => {
+    if (!isAdmin) return
+    try {
+      setAllOrders(await apiGet('/api/admin/orders', { withAuth: true }))
+    } catch (e) {
+      console.error('all orders load failed', e)
+    }
+  }, [isAdmin])
+
+  useEffect(() => {
+    if (authLoading) return
+    reloadMine()
+    reloadAll()
+  }, [authLoading, reloadMine, reloadAll])
+
+  // payload: { items:[{id,qty}], coupon, payment, address, customer }
+  async function placeOrder(payload) {
+    const order = await apiSend('POST', '/api/orders', payload)
+    await reloadMine()
+    if (isAdmin) reloadAll()
+    return order
+  }
+
+  async function setOrderStatus(id, status) {
+    await apiSend('PATCH', `/api/admin/orders/${id}`, { status })
+    await reloadAll()
+  }
+
+  const value = useMemo(
+    () => ({ myOrders, allOrders, placeOrder, setOrderStatus, reloadMine, reloadAll }),
+    [myOrders, allOrders],
+  )
   return <OrdersContext.Provider value={value}>{children}</OrdersContext.Provider>
 }
 

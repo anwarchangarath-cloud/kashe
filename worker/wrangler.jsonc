@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kash-api",
+  "main": "src/index.js",
+  "compatibility_date": "2024-11-01",
+  "account_id": "8a1e8fa989ca5c20c33d2a4f05c3501c",
+  "vars": {
+    "FIREBASE_PROJECT_ID": "kashe-d4298",
+    "ADMIN_EMAILS": "admin@kash.ae,owner@kash.ae"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "kash-db",
+      "database_id": "338bf9e4-a496-470a-aa25-eec1674b56f4"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "kash-images"
+    }
+  ],
+  "observability": { "enabled": true }
+}

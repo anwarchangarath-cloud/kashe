@@ -44,16 +44,18 @@ export default function Checkout() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { lines, subtotal, count, clear } = useCart()
-  const { addOrder } = useOrders()
+  const { placeOrder: submitOrder } = useOrders()
   const { user } = useAuth()
   const { addresses, defaultAddress } = useAddresses()
-  const { sell } = useProducts()
+  const { reload: reloadProducts } = useProducts()
 
   const [payment, setPayment] = useState('card')
   const [addressId, setAddressId] = useState(defaultAddress?.id)
   const [couponInput, setCouponInput] = useState('')
   const [coupon, setCoupon] = useState(null) // { code, discount, freeDelivery, label }
   const [couponError, setCouponError] = useState('')
+  const [placing, setPlacing] = useState(false)
+  const [orderError, setOrderError] = useState('')
 
   if (count === 0) {
     return (
@@ -92,27 +94,25 @@ export default function Checkout() {
     { label: t('checkout.steps.confirm'), state: 'upcoming' },
   ]
 
-  function placeOrder() {
-    const orderId = `SQ-${Math.floor(10000 + Math.random() * 90000)}`
-    const orderLines = lines.map((l) => ({ id: l.id, name: l.product.name, qty: l.qty, price: l.product.price }))
-    addOrder({
-      id: orderId,
-      customer: user?.fullName ?? 'Guest',
-      date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
-      items: count,
-      subtotal,
-      discount,
-      deliveryFee,
-      total,
-      coupon: coupon?.code ?? null,
-      address: selectedAddress ?? null,
-      status: 'packing',
-      payment: payment === 'cod' ? 'unpaid' : 'paid',
-      lines: orderLines,
-    })
-    sell(orderLines) // decrement stock
-    clear()
-    navigate('/order-confirmed', { state: { orderId, total, payment } })
+  async function placeOrder() {
+    setOrderError('')
+    setPlacing(true)
+    try {
+      // Server recomputes totals from DB prices and decrements stock in a transaction.
+      const order = await submitOrder({
+        items: lines.map((l) => ({ id: l.id, qty: l.qty })),
+        coupon: coupon?.code ?? null,
+        payment,
+        address: selectedAddress ?? null,
+        customer: user?.fullName,
+      })
+      clear()
+      reloadProducts() // refresh stock on the storefront
+      navigate('/order-confirmed', { state: { orderId: order.id, total: order.total, payment } })
+    } catch (e) {
+      setOrderError(e.message || t('auth.generic'))
+      setPlacing(false)
+    }
   }
 
   return (
@@ -197,7 +197,10 @@ export default function Checkout() {
             <span className="text-xl font-bold text-price">AED {formatAed(total)}</span>
           </div>
 
-          <Button variant="primary" size="lg" fullWidth className="mt-5 shadow-lg" onClick={placeOrder}>{t('checkout.placeOrder')}</Button>
+          {orderError && <p className="mt-3 text-sm font-medium text-price">{orderError}</p>}
+          <Button variant="primary" size="lg" fullWidth className="mt-5 shadow-lg" onClick={placeOrder} disabled={placing}>
+            {placing ? '…' : t('checkout.placeOrder')}
+          </Button>
           <p className="mt-4 text-center text-sm font-bold text-success">{t('checkout.arrives', { date: 'Sunday, 12 July' })}</p>
         </Card>
       </div>

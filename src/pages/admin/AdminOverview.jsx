@@ -5,7 +5,7 @@ import { cn } from '../../lib/cn.js'
 import { AdminPage, Panel, PaymentBadge } from '../../components/admin/AdminUi.jsx'
 import StatusBadge from '../../components/ui/StatusBadge.jsx'
 import { formatAed } from '../../lib/format.js'
-import { useAdmin } from '../../store/AdminContext.jsx'
+import { useOrders } from '../../store/OrdersContext.jsx'
 import { useProducts } from '../../store/ProductsContext.jsx'
 
 function Kpi({ icon: Icon, label, value, accent }) {
@@ -26,11 +26,16 @@ function Kpi({ icon: Icon, label, value, accent }) {
 
 export default function AdminOverview() {
   const { t } = useTranslation()
-  const { orders, kpis } = useAdmin()
+  const { allOrders: orders } = useOrders()
   const { products } = useProducts()
   const lowStock = products.filter((p) => p.level !== 'ok').length
   const revenue = orders.filter((o) => o.payment === 'paid').reduce((s, o) => s + o.total, 0)
   const attention = orders.filter((o) => ['pending', 'packing', 'returned'].includes(o.status))
+  const kpis = {
+    ordersToday: orders.length,
+    pending: orders.filter((o) => o.status === 'pending' || o.status === 'packing').length,
+    returns: orders.filter((o) => o.status === 'returned').length,
+  }
 
   return (
     <AdminPage title={t('admin.overview.title')} subtitle={t('admin.overview.subtitle')}>

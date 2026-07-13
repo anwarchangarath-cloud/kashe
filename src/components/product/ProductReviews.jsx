@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Star } from 'lucide-react'
@@ -6,7 +6,7 @@ import { cn } from '../../lib/cn.js'
 import Card from '../ui/Card.jsx'
 import Button from '../ui/Button.jsx'
 import RatingStars from '../ui/RatingStars.jsx'
-import { useReviews } from '../../store/ReviewsContext.jsx'
+import { apiGet, apiSend } from '../../lib/api.js'
 import { useAuth } from '../../store/AuthContext.jsx'
 import { useToast } from '../../store/ToastContext.jsx'
 
@@ -26,21 +26,29 @@ function StarInput({ value, onChange }) {
 
 export default function ProductReviews({ product }) {
   const { t } = useTranslation()
-  const { getReviews, addReview } = useReviews()
-  const { isAuthed, user } = useAuth()
+  const { isAuthed } = useAuth()
   const toast = useToast()
-  const reviews = getReviews(product.id)
 
+  const [reviews, setReviews] = useState([])
   const [rating, setRating] = useState(0)
   const [text, setText] = useState('')
 
-  function submit(e) {
+  useEffect(() => {
+    apiGet(`/api/products/${product.id}/reviews`).then(setReviews).catch(() => {})
+  }, [product.id])
+
+  async function submit(e) {
     e.preventDefault()
     if (!rating) return
-    addReview(product.id, { rating, text, author: user?.fullName })
-    toast.show(t('reviews.thanks'))
-    setRating(0)
-    setText('')
+    try {
+      await apiSend('POST', `/api/products/${product.id}/reviews`, { rating, text })
+      toast.show(t('reviews.thanks'))
+      setRating(0)
+      setText('')
+      setReviews(await apiGet(`/api/products/${product.id}/reviews`))
+    } catch (err) {
+      toast.show(err.message)
+    }
   }
 
   return (

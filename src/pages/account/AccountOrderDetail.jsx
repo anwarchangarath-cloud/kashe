@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft } from 'lucide-react'
@@ -7,7 +8,7 @@ import StatusBadge from '../../components/ui/StatusBadge.jsx'
 import OrderTracker, { buildTrackSteps } from '../../components/account/OrderTracker.jsx'
 import ProductImage from '../../components/product/ProductImage.jsx'
 import { formatAed } from '../../lib/format.js'
-import { useOrders } from '../../store/OrdersContext.jsx'
+import { apiGet } from '../../lib/api.js'
 import { useProducts } from '../../store/ProductsContext.jsx'
 
 const STAGE = { pending: 0, packing: 1, shipped: 3, delivered: 4, returned: 4 }
@@ -16,10 +17,14 @@ const PAYMENT_LABEL = { paid: 'Paid', unpaid: 'Cash on delivery', 'on-delivery':
 export default function AccountOrderDetail() {
   const { id } = useParams()
   const { t } = useTranslation()
-  const { orders } = useOrders()
   const { getProduct } = useProducts()
-  const order = orders.find((o) => o.id === id)
+  const [order, setOrder] = useState(undefined) // undefined = loading, null = not found
 
+  useEffect(() => {
+    apiGet(`/api/orders/${id}`, { withAuth: true }).then(setOrder).catch(() => setOrder(null))
+  }, [id])
+
+  if (order === undefined) return <Card className="py-16 text-center text-sm text-ink-muted">…</Card>
   if (!order) {
     return (
       <Card className="py-16 text-center">

@@ -43,7 +43,7 @@ function OrderRow({ order }) {
 export default function Dashboard() {
   const { t } = useTranslation()
   const { user } = useAuth()
-  const { orders } = useOrders()
+  const { myOrders: orders } = useOrders()
   const { count: savedCount } = useWishlist()
   const { defaultAddress } = useAddresses()
 
